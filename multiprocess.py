@@ -41,7 +41,7 @@ class NewProcess:
                 l = 0
                 while True:
                     print(l, ' - third layer')
-                    tm.sleep(1)  # todo the same
+                    tm.sleep(1)  # todo the same (the main delay)
                     l += 1
                     if self.q1.empty():
                         self.q1.put([l, 23, 54.886958688])
@@ -58,16 +58,74 @@ class NewProcess:
                     self.q.put(info)
 
 
+#####################test############################################
+# proc = NewProcess()
+# print('proc - first-final', os.getpid())
+# """
+# it is the first-main process (this process want get actual information from 'third-context' process)
+# """
+# while True:
+#     tm.sleep(4)
+#     if proc.qp.empty():
+#         proc.qp.put('give')
+#         tm.sleep(0.1)  # delay for getting information from 'second-helper' process
+#     if proc.q.empty() is not True:
+#         print(proc.q.get(), ' - first-final layer <<<---<<<<--------<<<<-------<<<<---')
+#####################test############################################
 
-proc = NewProcess()
-print('proc - first-final', os.getpid())
-"""
-it is the first-main process (this process want get actual information from 'third-context' process)
-"""
-while True:
-    tm.sleep(4)
-    if proc.qp.empty():
-        proc.qp.put('give')
-        tm.sleep(0.1)  # delay for getting information from 'second-helper' process
-    if proc.q.empty() is not True:
-        print(proc.q.get(), ' - first-final layer <<<---<<<<--------<<<<-------<<<<---')
+
+############## just for tests #######################################
+class Intermediary:
+    def __init__(self, all_funcs, delay):
+        self.all_funcs = all_funcs
+        self.keys = []
+        self.info_q = Queue(maxsize=2)
+        self.main_q = Queue(maxsize=2)
+        self.proc = Process(target=self.creator, args=(all_funcs,))
+        self.proc.start()
+        tm.sleep(delay)
+
+    def creator(self, funcs):
+
+        class Informator:
+            def __init__(self, func):
+                self.func = func
+                self.q = Queue(maxsize=2)
+                self.proc = Process(target=self.func, args=(self.wrapper,))
+                self.proc.start()
+
+            def wrapper(self, information):
+                if self.q.empty() is not True:
+                    self.q.put(information)
+
+        name = 0
+        library = {}
+        mean = {}
+        for i in funcs:
+            library[name] = Informator(i)
+            mean[name] = None
+
+        while True:
+            if self.info_q.empty() is not True:
+                out = self.info_q.get()
+                if self.main_q.empty():
+                    self.main_q.put(mean[out])
+
+            for i in library:
+                if library[i].q.empty() is not False:
+                    mean[i] = library[i].q.get()
+
+
+# чтение добавить
+# проверить
+# удаление добавить
+
+
+def exemp(func):  # тестовая выборка)
+    l = 0
+    while True:
+        tm.sleep(1)
+        l += 1
+        func(l)
+
+############## just for tests #######################################
